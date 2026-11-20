@@ -1352,6 +1352,22 @@ LLM
     </div>
 
     <div class="filter-section">
+      <h3>DeepSeek API Key <span class="filter-opt">AI 功能必需</span></h3>
+      <p class="filter-desc">
+        AI 摘要和 AI 打分都要用它。在
+        <a href="https://platform.deepseek.com/api_keys" target="_blank" rel="noopener">platform.deepseek.com</a>
+        创建，形如 <code>sk-...</code>。只存在你这台机器上。
+      </p>
+      <div class="key-row">
+        <input id="filter-apikey" type="password" class="filter-input key-input"
+               placeholder="sk-...（已保存则留空表示不修改）" autocomplete="off">
+        <button id="btn-save-key" class="filter-key-btn">保存 Key</button>
+        <button id="btn-clear-key" class="filter-key-clear">清除</button>
+      </div>
+      <p class="key-status" id="key-status"></p>
+    </div>
+
+    <div class="filter-section">
       <h3>关注方向 <span class="filter-opt">AI 打分用</span></h3>
       <p class="filter-desc">用一段话描述你关心什么，AI 会据此给内容打 0-100 分（比关键词准，但要消耗 API）</p>
       <textarea id="filter-interests" class="filter-textarea" rows="3" placeholder="我关注 AI 大模型进展、创业融资、芯片供应链，不关心消费电子和游戏"></textarea>
@@ -1372,6 +1388,10 @@ LLM
     $("#filter-exclude").value = (config.exclude || []).join("\n");
     $("#filter-minscore").value = config.minScore ?? 50;
     $("#filter-interests").value = config.interests || "";
+    $("#key-status").textContent = config.hasApiKey
+      ? "✓ 已保存 API key"
+      : "未配置 —— AI 摘要和 AI 打分都不可用";
+    $("#key-status").className = "key-status" + (config.hasApiKey ? " ok" : " warn");
   } catch (e) {
     $("#filter-status").textContent = "加载配置失败：" + e.message;
   }
@@ -1414,6 +1434,37 @@ LLM
     }
     btn.disabled = false;
     btn.textContent = "规则重新打分";
+  };
+
+  $("#btn-save-key").onclick = async () => {
+    const val = $("#filter-apikey").value.trim();
+    const status = $("#key-status");
+    if (!val) {
+      status.textContent = "请先填入 key";
+      status.className = "key-status warn";
+      return;
+    }
+    try {
+      await api("/intel-station/api/key", { method: "POST", body: { key: val } });
+      $("#filter-apikey").value = "";
+      status.textContent = "✓ 已保存 API key";
+      status.className = "key-status ok";
+    } catch (e) {
+      status.textContent = "保存失败：" + e.message;
+      status.className = "key-status warn";
+    }
+  };
+
+  $("#btn-clear-key").onclick = async () => {
+    const status = $("#key-status");
+    try {
+      await api("/intel-station/api/key", { method: "POST", body: { key: "" } });
+      $("#filter-apikey").value = "";
+      status.textContent = "已清除 API key";
+      status.className = "key-status warn";
+    } catch (e) {
+      status.textContent = "清除失败：" + e.message;
+    }
   };
 
   $("#btn-ai-score").onclick = async () => {

@@ -1,7 +1,7 @@
 {
   "meta": {
     "title": "六耳 AI资讯情报站",
-    "description": "本地 RSS 阅读器：三栏布局，全文搜索，来源健康度，OPML 导入。自带 RSS 抓取引擎，不依赖外部流水线。支持手动添加、批量粘贴、OPML 导入三种方式管理订阅源。可选接入 DeepSeek API 生成 AI 摘要。",
+    "description": "本地 RSS 阅读器：三栏布局，全文搜索，来源健康度，OPML 导入。自带抓取引擎，两级内容筛选（关键词规则 + AI 语义打分），可视化过滤设置。支持定时自动抓取，可选 DeepSeek AI 摘要。",
     "detail": "docs/DETAIL.md"
   },
   "panel": "情报站"

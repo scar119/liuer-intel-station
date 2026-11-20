@@ -55,6 +55,20 @@ function dataDir(config) {
   return dir;
 }
 
+// 密钥解析顺序：config.deepseekApiKey（YAML 里填的）→ 本地密钥文件
+// 文件方式对定时任务也通用，且不把密钥写进 profile 的 YAML
+function readApiKey(config, dataDir) {
+  if (config?.deepseekApiKey) return config.deepseekApiKey;
+  try {
+    const f = join(dataDir, '.deepseek_key');
+    if (existsSync(f)) {
+      const k = readFileSync(f, 'utf-8').trim();
+      if (k) return k;
+    }
+  } catch { /* 忽略 */ }
+  return '';
+}
+
 function pyEngine(config) {
   if (config?.pythonPath) return config.pythonPath;
   // 自动探测：用户最常见的失败是 python3 不在 PATH
@@ -253,9 +267,9 @@ export function apply(ctx, config) {
 
         // ── API: summarize (AI 摘要) ──
         if (method === 'POST' && rest === '/api/summarize') {
-          const apiKey = config?.deepseekApiKey;
+          const apiKey = readApiKey(config, DATA);
           if (!apiKey) {
-            return sendJson(res, 400, { error: '未配置 DeepSeek API key' });
+            return sendJson(res, 400, { error: '未配置 DeepSeek API key，请在「过滤设置」里保存' });
           }
           const body = JSON.parse(await readBody(req));
           const id = body.id;
@@ -272,11 +286,31 @@ export function apply(ctx, config) {
           return sendJson(res, 200, JSON.parse(result));
         }
 
+        // ── API: key (读写 DeepSeek API key) ──
+        if (rest === '/api/key') {
+          const keyFile = join(DATA, '.deepseek_key');
+          if (method === 'GET') {
+            return sendJson(res, 200, { hasKey: !!readApiKey(config, DATA) });
+          }
+          if (method === 'POST') {
+            const body = JSON.parse(await readBody(req) || '{}');
+            const key = String(body.key || '').trim();
+            if (key) {
+              writeFileSync(keyFile, key, { mode: 0o600 });
+              try { execSync(`chmod 600 "${keyFile}"`); } catch { /* ignore */ }
+              return sendJson(res, 200, { ok: true, hasKey: true });
+            }
+            // 传空字符串 = 删除
+            try { execSync(`rm -f "${keyFile}"`); } catch { /* ignore */ }
+            return sendJson(res, 200, { ok: true, hasKey: false });
+          }
+        }
+
         // ── API: ai-score (AI 打分，v2 混合方案) ──
         if (method === 'POST' && rest === '/api/ai-score') {
-          const apiKey = config?.deepseekApiKey;
+          const apiKey = readApiKey(config, DATA);
           if (!apiKey) {
-            return sendJson(res, 400, { error: '未配置 DeepSeek API key（在 DSH 插件设置里填）' });
+            return sendJson(res, 400, { error: '未配置 DeepSeek API key，请在「过滤设置」里保存' });
           }
           const body = JSON.parse(await readBody(req) || '{}');
           const limit = String(body.limit || 50);
@@ -298,7 +332,7 @@ export function apply(ctx, config) {
             ...config,
             dataDir: DATA,
             pythonPath: PY,
-            hasApiKey: !!(config?.deepseekApiKey),
+            hasApiKey: !!readApiKey(config, DATA),
           });
         }
 

@@ -1083,3 +1083,30 @@ body {
   .filter-opt { background: #2d2640; color: #b39ddb; }
   .filter-ai-btn { background: #2d2640; border-color: #4a3d5c; color: #ce93d8; }
 }
+
+/* API Key 配置 */
+.key-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.key-input { flex: 1; min-width: 200px; width: auto; font-family: ui-monospace, monospace; font-size: 12px; }
+.filter-key-btn {
+  padding: 8px 14px; border-radius: 8px; font-size: 13px; cursor: pointer;
+  border: none; background: #0066cc; color: #fff; white-space: nowrap;
+}
+.filter-key-btn:hover { opacity: .88; }
+.filter-key-clear {
+  padding: 8px 12px; border-radius: 8px; font-size: 13px; cursor: pointer;
+  border: 1px solid #e0e0e0; background: #fff; color: #9a9a94; white-space: nowrap;
+}
+.filter-key-clear:hover { color: #d32f2f; border-color: #ef9a9a; }
+.key-status { margin: 8px 0 0; font-size: 12px; min-height: 16px; }
+.key-status.ok { color: #2e7d32; }
+.key-status.warn { color: #ed6c02; }
+.filter-desc code {
+  padding: 1px 4px; border-radius: 3px; background: #f0f0f0;
+  font-family: ui-monospace, monospace; font-size: 11px;
+}
+@media (prefers-color-scheme: dark) {
+  .filter-key-clear { background: #1e1e1e; border-color: #3a3a3a; }
+  .filter-desc code { background: #2a2a2a; }
+  .key-status.ok { color: #81c784; }
+  .key-status.warn { color: #ffb74d; }
+}
