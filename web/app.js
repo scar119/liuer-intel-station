@@ -28,6 +28,8 @@ const VIEW_META = {
   unread: { title: "未读", empty: "没有未读内容了" },
   hot: { title: "近期", empty: "最近 7 天没有新内容" },
   filtered: { title: "精选", empty: "没有达到分数阈值的内容，去「过滤设置」调整关键词" },
+  practice: { title: "实操落地", empty: "还没有 AI 分类为「实操落地」的内容，去「过滤设置」点 AI 打分" },
+  insight: { title: "认知洞察", empty: "还没有 AI 分类为「认知洞察」的内容，去「过滤设置」点 AI 打分" },
   starred: { title: "收藏", empty: "还没有收藏" },
   all: { title: "全部", empty: "索引里还没有内容" },
 };
@@ -323,8 +325,10 @@ function renderSidebar() {
   prim.innerHTML = "";
 
   const rows = [
-    { key: "filtered", label: "精选", count: b.filtered_count, badge: true },
+    { key: "filtered", label: "精选", count: b.filtered_count },
     { key: "unread", label: "未读", count: b.unread, dot: true },
+    { key: "practice", label: "实操落地", count: b.practice_unread },
+    { key: "insight", label: "认知洞察", count: b.cognition_unread },
     { key: "hot", label: "近期", count: b.hot_unread },
     { key: "starred", label: "收藏", count: b.starred },
     { key: "all", label: "全部", count: b.total },
@@ -334,6 +338,8 @@ function renderSidebar() {
     btn.innerHTML =
       `${r.dot ? '<span class="dot"></span>' : '<span class="ico">' +
         (r.key === "filtered" ? "◉"
+          : r.key === "practice" ? "◈"
+          : r.key === "insight" ? "◇"
           : r.key === "hot" ? "✦"
           : r.key === "starred" ? "★" : "▤") + "</span>"}` +
       `<span class="label">${r.label}</span>` +
@@ -414,8 +420,8 @@ function renderSidebar() {
 function renderFilters() {
   const f = $("#filters");
   f.innerHTML = "";
-  [["filtered", "精选"], ["unread", "未读"], ["hot", "近期"],
-   ["all", "全部"], ["starred", "收藏"]]
+  [["filtered", "精选"], ["unread", "未读"], ["practice", "实操"],
+   ["insight", "洞察"], ["hot", "近期"], ["all", "全部"], ["starred", "收藏"]]
     .forEach(([k, label]) => {
       const b = el("button", `chip${S.view === k ? " active" : ""}`, label);
       b.onclick = () => setView(k);
@@ -635,6 +641,9 @@ function buildCard(it, idx) {
   card.dataset.idx = idx;
 
   const tags = [];
+  if (it.ai_tier === "practice") tags.push('<span class="tag tier-practice">实操落地</span>');
+  else if (it.ai_tier === "insight") tags.push('<span class="tag tier-insight">认知洞察</span>');
+  if (it.ai_channel) tags.push(`<span class="tag">${esc(it.ai_channel)}</span>`);
   if (it.body_hit) tags.push('<span class="tag bodyhit">正文命中</span>');
   if (it.starred) tags.push('<span class="tag star">★ 收藏</span>');
   if (it.raw_category && !JUNK_CATS.has(it.raw_category) &&

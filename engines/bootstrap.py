@@ -77,9 +77,6 @@ def get_stats(db_path: str) -> dict:
         # meta table may not exist
         pass
 
-    # channels: empty array (no channel taxonomy in standalone version)
-    channels = []
-
     # feeds: top 60 sources by count
     cur.execute(
         """
@@ -106,6 +103,37 @@ def get_stats(db_path: str) -> dict:
         # ai_score column may not exist
         pass
 
+    # 分级统计（AI 分过类的内容）
+    practice_unread = 0
+    insight_unread = 0
+    try:
+        cur.execute(
+            "SELECT SUM(CASE WHEN ai_tier='practice' AND read=0 THEN 1 ELSE 0 END),"
+            "       SUM(CASE WHEN ai_tier='insight'  AND read=0 THEN 1 ELSE 0 END)"
+            " FROM entries"
+        )
+        r = cur.fetchone()
+        practice_unread = r[0] or 0
+        insight_unread = r[1] or 0
+    except sqlite3.OperationalError:
+        pass
+
+    # 频道统计（有内容才列出来）
+    channels = []
+    try:
+        cur.execute(
+            "SELECT ai_channel AS k, COUNT(*) AS n,"
+            "       SUM(CASE WHEN read=0 THEN 1 ELSE 0 END) AS u"
+            " FROM entries WHERE ai_channel IS NOT NULL AND ai_channel <> ''"
+            " GROUP BY ai_channel ORDER BY n DESC"
+        )
+        channels = [
+            {"key": row["k"], "label": row["k"], "count": row["n"], "unread": row["u"]}
+            for row in cur.fetchall()
+        ]
+    except sqlite3.OperationalError:
+        pass
+
     conn.close()
 
     return {
@@ -118,8 +146,8 @@ def get_stats(db_path: str) -> dict:
         "last_indexed": last_indexed,
         "channels": channels,
         "feeds": feeds,
-        "practice_unread": 0,
-        "cognition_unread": 0,
+        "practice_unread": practice_unread,
+        "cognition_unread": insight_unread,
         "filtered_count": filtered_count,
     }
 

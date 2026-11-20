@@ -1122,3 +1122,11 @@ body {
   display: none;
   margin-right: 2px;
 }
+
+/* 分级标签 */
+.tag.tier-practice { background: #fff3e0; color: #e65100; border-color: #ffcc80; }
+.tag.tier-insight  { background: #e8eaf6; color: #283593; border-color: #9fa8da; }
+@media (prefers-color-scheme: dark) {
+  .tag.tier-practice { background: #3d2910; color: #ffb74d; border-color: #5d3f18; }
+  .tag.tier-insight  { background: #1f2340; color: #9fa8da; border-color: #333a6b; }
+}

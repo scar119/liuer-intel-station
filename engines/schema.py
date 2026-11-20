@@ -31,7 +31,10 @@ CREATE TABLE IF NOT EXISTS entries (
   starred INTEGER DEFAULT 0,
   indexed_at TEXT DEFAULT CURRENT_TIMESTAMP,
   ai_summary TEXT,
-  ai_score INTEGER
+  ai_score INTEGER,
+  llm_score INTEGER,
+  ai_tier TEXT,
+  ai_channel TEXT
 );
 
 -- FTS5 virtual table for full-text search
@@ -54,6 +57,9 @@ CREATE INDEX IF NOT EXISTS idx_entries_published ON entries(published_ts DESC);
 CREATE INDEX IF NOT EXISTS idx_entries_read ON entries(read);
 CREATE INDEX IF NOT EXISTS idx_entries_starred ON entries(starred);
 CREATE INDEX IF NOT EXISTS idx_entries_score ON entries(ai_score DESC);
+CREATE INDEX IF NOT EXISTS idx_entries_llm_score ON entries(llm_score DESC);
+CREATE INDEX IF NOT EXISTS idx_entries_tier ON entries(ai_tier);
+CREATE INDEX IF NOT EXISTS idx_entries_channel ON entries(ai_channel);
 """
 
 

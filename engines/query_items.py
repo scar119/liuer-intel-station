@@ -20,7 +20,7 @@ def clamp(value: int, lo: int, hi: int) -> int:
     return max(lo, min(hi, value))
 
 
-def build_query(view: str, feed: str, q: str, limit: int, offset: int, min_score: int = 0):
+def build_query(view: str, feed: str, q: str, limit: int, offset: int, min_score: int = 0, tier: str = "", channel: str = ""):
     """Return (sql, params, mode) for the requested query."""
     conditions = []
     params = []
@@ -40,12 +40,21 @@ def build_query(view: str, feed: str, q: str, limit: int, offset: int, min_score
         # 按分数筛选
         conditions.append("COALESCE(e.llm_score, e.ai_score, 0) >= ?")
         params.append(min_score)
+    elif view == "practice":
+        conditions.append("e.ai_tier = 'practice'")
+    elif view == "insight":
+        conditions.append("e.ai_tier = 'insight'")
     # "all" → no extra condition (1=1 implicit)
 
     # Feed filter
     if feed:
         conditions.append("e.source = ?")
         params.append(feed)
+
+    # Channel filter
+    if channel:
+        conditions.append("e.ai_channel = ?")
+        params.append(channel)
 
     # Search filter
     if q and len(q) >= 3:
@@ -65,13 +74,13 @@ def build_query(view: str, feed: str, q: str, limit: int, offset: int, min_score
         # FTS5 query: join entry_fts with entries, order by bm25
         sql = (
             "SELECT e.id, e.title, e.source, e.published_ts, e.published_at, "
-            "e.summary, e.read, e.starred, e.link, e.ai_score, e.llm_score "
+            "e.summary, e.read, e.starred, e.link, e.ai_score, e.llm_score, e.ai_tier, e.ai_channel "
             "FROM entries e "
             "JOIN entry_fts f ON e.rowid = f.rowid "
             f"{where_clause} AND f.entry_fts MATCH ? "
             if conditions
             else "SELECT e.id, e.title, e.source, e.published_ts, e.published_at, "
-            "e.summary, e.read, e.starred, e.link, e.ai_score, e.llm_score "
+            "e.summary, e.read, e.starred, e.link, e.ai_score, e.llm_score, e.ai_tier, e.ai_channel "
             "FROM entries e "
             "JOIN entry_fts f ON e.rowid = f.rowid "
             "WHERE f.entry_fts MATCH ? "
@@ -97,10 +106,17 @@ def build_query(view: str, feed: str, q: str, limit: int, offset: int, min_score
         elif view == "filtered":
             fts_conditions.append("COALESCE(e.llm_score, e.ai_score, 0) >= ?")
             fts_params.append(min_score)
+        elif view == "practice":
+            fts_conditions.append("e.ai_tier = 'practice'")
+        elif view == "insight":
+            fts_conditions.append("e.ai_tier = 'insight'")
 
         if feed:
             fts_conditions.append("e.source = ?")
             fts_params.append(feed)
+        if channel:
+            fts_conditions.append("e.ai_channel = ?")
+            fts_params.append(channel)
 
         fts_where = ""
         if fts_conditions:
@@ -110,7 +126,7 @@ def build_query(view: str, feed: str, q: str, limit: int, offset: int, min_score
 
         sql = (
             "SELECT e.id, e.title, e.source, e.published_ts, e.published_at, "
-            "e.summary, e.read, e.starred, e.link, e.ai_score, e.llm_score "
+            "e.summary, e.read, e.starred, e.link, e.ai_score, e.llm_score, e.ai_tier, e.ai_channel "
             "FROM entries e "
             "JOIN entry_fts f ON e.rowid = f.rowid "
             f"{fts_where}f.entry_fts MATCH ? "
@@ -126,7 +142,7 @@ def build_query(view: str, feed: str, q: str, limit: int, offset: int, min_score
     order = "ORDER BY e.published_ts DESC"
     sql = (
         "SELECT e.id, e.title, e.source, e.published_ts, e.published_at, "
-        "e.summary, e.read, e.starred, e.link, e.ai_score, e.llm_score "
+        "e.summary, e.read, e.starred, e.link, e.ai_score, e.llm_score, e.ai_tier, e.ai_channel "
         f"FROM entries e {where_clause} "
         f"{order} LIMIT ? OFFSET ?"
     )
@@ -146,10 +162,10 @@ def truncate(text: str | None, max_len: int = 220) -> str:
 def main():
     parser = argparse.ArgumentParser(description="Query RSS entries from SQLite")
     parser.add_argument("db_path", help="Path to SQLite database")
-    parser.add_argument("--view", default="all", choices=["unread", "all", "starred", "hot", "filtered"])
+    parser.add_argument("--view", default="all", choices=["unread", "all", "starred", "hot", "filtered", "practice", "insight"])
     parser.add_argument("--limit", type=int, default=50)
     parser.add_argument("--offset", type=int, default=0)
-    parser.add_argument("--channel", default="", help="Channel filter (reserved)")
+    parser.add_argument("--channel", default="", help="按 AI 频道过滤")
     parser.add_argument("--feed", default="", help="Filter by source/feed name")
     parser.add_argument("--q", default="", help="Search query")
     args = parser.parse_args()
@@ -176,7 +192,7 @@ def main():
             except Exception:
                 min_score = 50
 
-        sql, params, mode = build_query(args.view, args.feed, args.q, limit, offset, min_score)
+        sql, params, mode = build_query(args.view, args.feed, args.q, limit, offset, min_score, "", args.channel)
         rows = conn.execute(sql, params).fetchall()
 
         has_more = len(rows) > limit
@@ -203,6 +219,8 @@ def main():
                 "link": row["link"] or "",
                 "preview": summary_text,
                 "ai_score": score,
+                "ai_tier": (row["ai_tier"] if "ai_tier" in row.keys() else None),
+                "ai_channel": (row["ai_channel"] if "ai_channel" in row.keys() else None),
             })
 
         result = {

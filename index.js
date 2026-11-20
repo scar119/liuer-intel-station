@@ -222,6 +222,7 @@ export function apply(ctx, config) {
             '--offset', url.searchParams.get('offset') || '0',
             '--feed', url.searchParams.get('feed') || '',
             '--q', url.searchParams.get('q') || '',
+            '--channel', url.searchParams.get('channel') || '',
           ];
           const result = await runPy(PY, join(ENGINE_DIR, 'query_items.py'), args);
           return sendJson(res, 200, JSON.parse(result));
