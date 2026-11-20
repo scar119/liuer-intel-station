@@ -200,47 +200,10 @@ def process_feed(feed_info: dict) -> dict:
 # ---------------------------------------------------------------------------
 
 def ensure_tables(conn: sqlite3.Connection):
-    """Create tables if they don't exist."""
-    conn.executescript("""
-        CREATE TABLE IF NOT EXISTS feeds (
-            id       TEXT PRIMARY KEY,
-            name     TEXT,
-            url      TEXT UNIQUE,
-            category TEXT,
-            status   TEXT DEFAULT 'pending',
-            lastFetched TEXT
-        );
-
-        CREATE TABLE IF NOT EXISTS entries (
-            id        TEXT PRIMARY KEY,
-            feed_id   TEXT,
-            title     TEXT,
-            link      TEXT UNIQUE,
-            published TEXT,
-            summary   TEXT,
-            body      TEXT,
-            fetched_at TEXT DEFAULT (datetime('now')),
-            FOREIGN KEY (feed_id) REFERENCES feeds(id)
-        );
-
-        CREATE VIRTUAL TABLE IF NOT EXISTS entry_fts USING fts5(
-            title,
-            body,
-            content='entries',
-            content_rowid='rowid'
-        );
-
-        CREATE TRIGGER IF NOT EXISTS entries_ai AFTER INSERT ON entries BEGIN
-            INSERT INTO entry_fts(rowid, title, body)
-            VALUES (new.rowid, new.title, substr(new.body, 1, 600));
-        END;
-
-        CREATE TABLE IF NOT EXISTS meta (
-            key   TEXT PRIMARY KEY,
-            value TEXT
-        );
-    """)
-    conn.commit()
+    """建表 —— 复用 schema.py 的单一事实源，避免两处 schema 漂移。"""
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import schema
+    schema.ensure(conn)
 
 
 def upsert_feed(conn: sqlite3.Connection, feed_info: dict):

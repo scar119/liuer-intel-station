@@ -451,6 +451,18 @@ python3 engines/schema.py /tmp/test.db
 python3 engines/fetch_feeds.py /tmp/testdir /tmp/test.db
 ```
 
+## 想自己做一个类似的？
+
+这个插件的完整开发过程被反向拆成了一份可执行的提示词：
+
+**[docs/BUILD-PROMPT.md](docs/BUILD-PROMPT.md)**
+
+它把「从空目录到上线」分成 8 个阶段，每阶段带验收命令，另外列了 13 个真实踩过的坑（建表语句漂移、路由泄漏、移动端不可用、FTS5 写法错误……）。
+
+用法：整段复制给你的 AI Agent，把开头 `<尖括号>` 里的需求换成你自己的，它就照着一步步做。
+
+换个数据源也能用 —— 它不是"教你抄这个 RSS 阅读器"，而是"教你做任何 DSH 数据面板插件"。
+
 ## License
 
 MIT

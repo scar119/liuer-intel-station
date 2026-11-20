@@ -50,7 +50,10 @@ function sendFile(res, filePath) {
 }
 
 function dataDir(config) {
-  const dir = config?.dataDir || join(process.env.HOME || '/tmp', '.liuer-intel-station');
+  // 优先级：插件配置 → 环境变量（README 承诺过，必须真的支持）→ 默认
+  const dir = config?.dataDir
+    || process.env.LIUER_DATA_DIR
+    || join(process.env.HOME || '/tmp', '.liuer-intel-station');
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
   return dir;
 }

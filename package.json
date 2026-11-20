@@ -34,7 +34,8 @@
     "engines",
     "LICENSE",
     "README.md",
-    "install-schedule.sh"
+    "install-schedule.sh",
+    "docs/BUILD-PROMPT.md"
   ],
   "dsh": {
     "bundle": {
