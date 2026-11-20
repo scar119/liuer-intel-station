@@ -349,7 +349,7 @@ function renderSidebar() {
   prim.appendChild(wk);
 
   // 订阅管理
-  const sub = el("button", `nav-item\${S.mode === "subscribe" ? " active" : ""}`);
+  const sub = el("button", `nav-item${S.mode === "subscribe" ? " active" : ""}`);
   sub.innerHTML = `<span class="ico">＋</span><span class="label">订阅管理</span>`;
   sub.onclick = openSubscribe;
   prim.appendChild(sub);
@@ -370,7 +370,9 @@ function renderSidebar() {
 
   const ch = $("#nav-channels");
   ch.innerHTML = "";
-  b.channels.forEach((c) => {
+  const secCh = $("#sec-channels");
+  if (secCh) secCh.hidden = !(b.channels && b.channels.length);
+  (b.channels || []).forEach((c) => {
     const btn = el("button",
       `nav-item${S.channel === c.key ? " active" : ""}${c.unread ? " unread" : ""}`);
     btn.innerHTML = `<span class="dot" style="opacity:${c.unread ? 1 : 0}"></span>` +
@@ -388,11 +390,14 @@ function renderSidebar() {
   const fd = $("#nav-feeds");
   fd.innerHTML = "";
   b.feeds.slice(0, 40).forEach((f) => {
-    const btn = el("button", `nav-item${S.feed === f.name ? " active" : ""}${f.unread ? " unread" : ""}`);
-    btn.innerHTML = `<span class="label" title="${esc(f.name)}">${esc(f.name)}</span>` +
-      `<span class="count">${f.unread || f.count}</span>`;
+    // bootstrap 返回的字段是 source，兼容旧版的 name
+    const fname = f.source || f.name || "";
+    if (!fname) return;
+    const btn = el("button", `nav-item${S.feed === fname ? " active" : ""}${f.unread ? " unread" : ""}`);
+    btn.innerHTML = `<span class="label" title="${esc(fname)}">${esc(fname)}</span>` +
+      `<span class="count">${f.unread || f.count || 0}</span>`;
     btn.onclick = () => {
-      S.feed = S.feed === f.name ? null : f.name;
+      S.feed = S.feed === fname ? null : fname;
       S.channel = null;
       refreshList(true);
       renderSidebar();
@@ -409,8 +414,8 @@ function renderSidebar() {
 function renderFilters() {
   const f = $("#filters");
   f.innerHTML = "";
-  [["unread", "未读"], ["hot", "近期"],
-   ["cognition", "洞察"], ["all", "全部"], ["starred", "收藏"]]
+  [["filtered", "精选"], ["unread", "未读"], ["hot", "近期"],
+   ["all", "全部"], ["starred", "收藏"]]
     .forEach(([k, label]) => {
       const b = el("button", `chip${S.view === k ? " active" : ""}`, label);
       b.onclick = () => setView(k);
@@ -418,7 +423,18 @@ function renderFilters() {
     });
 }
 
+/* 移动端单栏：在「列表」和「阅读器」之间切换 */
+function showPanel(which) {
+  const app = document.querySelector(".app");
+  if (!app) return;
+  app.classList.toggle("mobile-reader", which === "reader");
+  const sidebar = $("#sidebar"), backdrop = $("#sidebar-backdrop");
+  if (sidebar) sidebar.classList.remove("open");
+  if (backdrop) backdrop.classList.remove("show");
+}
+
 function setView(v) {
+  showPanel("list");
   S.view = v;
   S.channel = null;
   S.feed = null;
@@ -483,8 +499,11 @@ async function refreshList(reset) {
         : "";
       if (!S.items.length) renderEmptyList();
       else if (!S.selected) {
-        const at = S.pendingId ? S.items.findIndex((x) => x.id === S.pendingId) : -1;
-        selectIndex(at >= 0 ? at : 0, false);
+        // 桌面端自动选中第一篇；移动端保持列表可见，别直接跳进正文
+        if (window.innerWidth > 640) {
+          const at = S.pendingId ? S.items.findIndex((x) => x.id === S.pendingId) : -1;
+          selectIndex(at >= 0 ? at : 0, false);
+        }
       }
     }
     updateFoot();
@@ -543,21 +562,25 @@ async function loadSources() {
     d.sources.forEach((src) => {
       const st = SOURCE_STATUS[src.status] || SOURCE_STATUS.ok;
       const card = el("div", "card src-card");
-      const ratePct = Math.round(src.signal_rate * 100);
+      // 引擎返回的是 signal(命中数)/total，不是 signal_rate 小数
+      const srcName = src.source || src.name || "";
+      const signalCount = src.signal ?? 0;
+      const ratePct = src.total ? Math.round((signalCount / src.total) * 100) : 0;
+      const days = src.last_ts ? Math.floor((Date.now() / 1000 - src.last_ts) / 86400) : 9999;
       card.innerHTML = `
         <div class="card-main">
           <div class="card-meta">
             <span class="src-pill ${st.cls}">${st.label}</span>
-            <span class="src">${esc(src.name)}</span>
+            <span class="src">${esc(srcName)}</span>
           </div>
           <div class="src-line">
             ${src.total} 篇 · 近 30 天 ${src.n30} · 信号率 ${ratePct}% ·
-            ${src.days >= 9999 ? "无日期" : src.days === 0 ? "今天有更新" : `最后更新 ${src.days} 天前`}
+            ${days >= 9999 ? "无日期" : days === 0 ? "今天有更新" : `最后更新 ${days} 天前`}
           </div>
           <div class="src-meter"><i style="width:${Math.min(100, ratePct * 4)}%"></i></div>
         </div>`;
       card.onclick = () => {
-        S.feed = src.name;
+        S.feed = srcName;
         S.view = "unread";
         S.channel = null;
         refreshList(true);
@@ -672,6 +695,7 @@ async function selectIndex(idx, userAction) {
     node.classList.add("active");
     node.scrollIntoView({ block: "nearest" });
   }
+  showPanel("reader");
   $("#reader-empty").hidden = true;
   const body = $("#reader-body");
   body.hidden = false;
@@ -695,6 +719,7 @@ function renderArticle(d) {
 
   body.innerHTML = `
     <div class="reader-top">
+      <button class="rbtn reader-back" id="btn-reader-back">‹ 返回列表</button>
       <a class="rbtn" href="${esc(d.link || "#")}" target="_blank" rel="noopener">打开原文 ↗</a>
       <button class="rbtn" id="btn-star">${d.starred ? "★ 已收藏" : "☆ 收藏"}</button>
       <button class="rbtn" id="btn-read">${d.read ? "标为未读" : "标为已读"}</button>
@@ -722,6 +747,9 @@ function renderArticle(d) {
       </div>` : `<button class="ai-generate" id="btn-generate">✨ 生成 AI 总结</button>`}
     ${d.body ? renderMarkdown(d.body) : `<div class="prose"><p style="color:#9a9a94">（这篇没有正文缓存，点上方「打开原文」查看）</p></div>`}
   `;
+
+  const backBtn = $("#btn-reader-back");
+  if (backBtn) backBtn.onclick = () => showPanel("list");
 
   $("#btn-star").onclick = () => toggleStar(d.id);
   $("#btn-read").onclick = () => {
@@ -854,7 +882,7 @@ async function openSubscribe() {
     </div>
 
     <div class="sub-section">
-      <h2 class="wk-h">当前订阅（\${feeds.length} 个）</h2>
+      <h2 class="wk-h">当前订阅（${feeds.length} 个）</h2>
       <div id="sub-list" class="sub-list"></div>
     </div>
 
@@ -869,9 +897,9 @@ async function openSubscribe() {
     feeds.forEach((f) => {
       const row = el("div", "sub-feed-row");
       row.innerHTML = `
-        <span class="sub-feed-title">\${esc(f.title || f.xmlUrl)}</span>
-        <span class="sub-feed-url">\${esc(f.xmlUrl)}</span>
-        <button class="sub-remove" data-url="\${esc(f.xmlUrl)}">删除</button>`;
+        <span class="sub-feed-title">${esc(f.title || f.xmlUrl)}</span>
+        <span class="sub-feed-url">${esc(f.xmlUrl)}</span>
+        <button class="sub-remove" data-url="${esc(f.xmlUrl)}">删除</button>`;
       listEl.appendChild(row);
     });
     listEl.querySelectorAll(".sub-remove").forEach((btn) => {
@@ -904,7 +932,7 @@ async function openSubscribe() {
         method: "POST", headers: {"Content-Type":"application/json"},
         body: JSON.stringify({ urls: [url] }),
       });
-      showStatus(`添加了 \${r.added} 个源`, true);
+      showStatus(`添加了 ${r.added} 个源`, true);
       $("#sub-single").value = "";
       setTimeout(() => openSubscribe(), 800);
     } catch (e) { showStatus("添加失败：" + e.message, false); }
@@ -919,7 +947,7 @@ async function openSubscribe() {
         method: "POST", headers: {"Content-Type":"application/json"},
         body: JSON.stringify({ urls }),
       });
-      showStatus(`添加了 \${r.added} 个源`, true);
+      showStatus(`添加了 ${r.added} 个源`, true);
       $("#sub-batch").value = "";
       setTimeout(() => openSubscribe(), 800);
     } catch (e) { showStatus("添加失败：" + e.message, false); }
@@ -935,7 +963,7 @@ async function openSubscribe() {
         method: "POST", headers: {"Content-Type":"application/json"},
         body: JSON.stringify({ opml: text }),
       });
-      showStatus(`从 OPML 导入了 \${r.added} 个源`, true);
+      showStatus(`从 OPML 导入了 ${r.added} 个源`, true);
       setTimeout(() => openSubscribe(), 800);
     } catch (e) { showStatus("导入失败：" + e.message, false); }
   };
@@ -947,7 +975,7 @@ async function openSubscribe() {
     btn.disabled = true;
     try {
       const r = await api("/intel-station/api/fetch", { method: "POST" });
-      showStatus(`抓取完成：\${r.stats.new_entries} 条新文章，\${r.stats.seconds}s`, true);
+      showStatus(`抓取完成：${r.stats.new_entries} 条新文章，${r.stats.seconds}s`, true);
       await reloadBoot();
     } catch (e) { showStatus("抓取失败：" + e.message, false); }
     finally { btn.textContent = "立即抓取"; btn.disabled = false; }
@@ -971,10 +999,8 @@ async function openWeekly() {
   body.innerHTML = `<div class="reader-loading">统计中…</div>`;
   try {
     const d = await api("/intel-station/api/weekly");
-    const chLabel = {};
-    (S.boot?.channels || []).forEach((c) => { chLabel[c.key] = c.label; });
     const maxDay = Math.max(1, ...d.daily.map((x) => x.n));
-    const maxCh = Math.max(1, ...d.channels.map((x) => x.n));
+    const maxCh = Math.max(1, ...(d.busiest || []).map((x) => x.n));
     const arrow = d.delta >= 0 ? "↑" : "↓";
     const deltaCls = d.delta >= 0 ? "up" : "down";
 
@@ -996,10 +1022,10 @@ async function openWeekly() {
       </div>
 
       <div class="wk-grid">
-        <div class="wk-cell"><b>${d.cur.practice}</b><span>实操落地</span></div>
-        <div class="wk-cell"><b>${d.cur.insight}</b><span>认知洞察</span></div>
-        <div class="wk-cell"><b>${d.cur.signal}</b><span>高信号</span></div>
         <div class="wk-cell"><b>${d.cur.sources}</b><span>活跃来源</span></div>
+        <div class="wk-cell"><b>${Math.round(d.cur.total / 7)}</b><span>日均篇数</span></div>
+        <div class="wk-cell"><b>${maxDay}</b><span>单日峰值</span></div>
+        <div class="wk-cell"><b>${d.prev.sources}</b><span>上周来源</span></div>
       </div>
 
       <h2 class="wk-h">每天产出</h2>
@@ -1012,11 +1038,11 @@ async function openWeekly() {
           </div>`).join("")}
       </div>
 
-      <h2 class="wk-h">频道分布</h2>
+      <h2 class="wk-h">来源分布</h2>
       <div class="wk-rows">
-        ${d.channels.map((c) => `
+        ${d.busiest.slice(0, 8).map((c) => `
           <div class="wk-row">
-            <span class="wk-lbl">${esc(chLabel[c.key] || c.key)}</span>
+            <span class="wk-lbl">${esc(c.name)}</span>
             <span class="wk-track"><i style="width:${Math.round((c.n / maxCh) * 100)}%"></i></span>
             <span class="wk-val">${c.n}</span>
           </div>`).join("")}
@@ -1027,18 +1053,10 @@ async function openWeekly() {
         ${d.top.map((it) => `
           <div class="wk-item" data-id="${it.id}">
             <div class="wk-item-t">${esc(it.title || "")}</div>
-            <div class="wk-item-m">${esc(it.source)} · ${it.tier_label}${
-              it.score >= 6 ? ` · 评分 ${it.score}` : ""}</div>
+            <div class="wk-item-m">${esc(it.source || "")}</div>
           </div>`).join("") || `<div class="wk-empty">本周没有高信号内容</div>`}
       </div>
 
-      ${d.new_sources.length ? `<h2 class="wk-h">本周新出现的来源</h2>
-      <div class="wk-chips">${d.new_sources.map((x) =>
-        `<span class="wk-chip">${esc(x.name)} · ${x.n}</span>`).join("")}</div>` : ""}
-
-      <h2 class="wk-h">最活跃来源</h2>
-      <div class="wk-chips">${d.busiest.map((x) =>
-        `<span class="wk-chip">${esc(x.name)} · ${x.n}</span>`).join("")}</div>
     `;
     body.querySelectorAll(".wk-item").forEach((elm) => {
       elm.onclick = () => openEntryById(elm.dataset.id);
@@ -1265,8 +1283,9 @@ async function autoRefreshIfStale() {
     return;
   }
 
-  // 首次 onboarding
-  if (!localStorage.getItem("liuer_onboarded")) {
+  // 首次 onboarding（nointro=1 用于截图/文档，不弹引导）
+  const skipIntro = new URLSearchParams(location.search).get("nointro") === "1";
+  if (!skipIntro && !localStorage.getItem("liuer_onboarded")) {
     showOnboarding();
   }
 

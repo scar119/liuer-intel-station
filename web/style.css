@@ -825,10 +825,16 @@ body {
 }
 
 @media (max-width: 640px) {
-  .app { grid-template-columns: 0 0 1fr; }
-  .listpane { display: none; }
-  .listpane.mobile-show { display: flex; position: fixed; inset: 0; z-index: 30; }
-  .reader { grid-column: 1 / -1; }
+  /* 单列：列表和阅读器互斥占满整屏 */
+  .app { grid-template-columns: minmax(0, 1fr); }
+  .listpane { display: flex; grid-column: 1 / -1; }
+  .reader { display: none; }
+  .app.mobile-reader .listpane { display: none; }
+  .app.mobile-reader .reader {
+    display: flex; position: fixed; inset: 0; z-index: 20;
+  }
+  /* 移动端返回按钮只在看正文时出现 */
+  .reader-back { display: inline-flex !important; }
 }
 
 /* ── 精选入口视觉强调 ── */
@@ -1109,4 +1115,10 @@ body {
   .filter-desc code { background: #2a2a2a; }
   .key-status.ok { color: #81c784; }
   .key-status.warn { color: #ffb74d; }
+}
+
+/* 移动端返回按钮：桌面隐藏 */
+.reader-back {
+  display: none;
+  margin-right: 2px;
 }
