@@ -703,14 +703,15 @@ function renderArticle(d) {
         hour: "2-digit", minute: "2-digit" })}</span>
       ${tierChip}${catChip}
     </div>
-    ${d.summary ? `<div class="ai-card">
+    ${d.ai_summary ? `<div class="ai-card">
         <div class="ai-head">
           <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor"
             d="M12 2l1.9 5.6L19.5 9l-5.6 1.9L12 16.5l-1.9-5.6L4.5 9l5.6-1.4L12 2zm6.5 12l.9 2.6 2.6.9-2.6.9-.9 2.6-.9-2.6-2.6-.9 2.6-.9.9-2.6zM5 15l.7 2 2 .7-2 .7L5 20.5l-.7-2.1-2-.7 2-.7L5 15z"/></svg>
           AI 总结
+          <button class="ai-refresh" id="btn-regen" title="重新生成">↻</button>
         </div>
-        <div class="ai-text">${esc(d.summary)}</div>
-      </div>` : ""}
+        <div class="ai-text">${esc(d.ai_summary)}</div>
+      </div>` : `<button class="ai-generate" id="btn-generate">✨ 生成 AI 总结</button>`}
     ${d.body ? renderMarkdown(d.body) : `<div class="prose"><p style="color:#9a9a94">（这篇没有正文缓存，点上方「打开原文」查看）</p></div>`}
   `;
 
@@ -721,6 +722,52 @@ function renderArticle(d) {
     markRead([d.id], next);
     body.querySelector("#btn-read").textContent = next ? "标为未读" : "标为已读";
   };
+
+  // AI 摘要按钮
+  const btnGen = $("#btn-generate");
+  if (btnGen) {
+    btnGen.onclick = async () => {
+      btnGen.disabled = true;
+      btnGen.textContent = "生成中…";
+      try {
+        const r = await api("/intel-station/api/summarize", { method: "POST", body: { id: d.id } });
+        if (r.ok) {
+          // 重新渲染文章
+          const updated = await api(`/intel-station/api/item/${d.id}`);
+          renderArticle(updated);
+          toast("摘要已生成");
+        } else {
+          throw new Error(r.error || "生成失败");
+        }
+      } catch (e) {
+        btnGen.disabled = false;
+        btnGen.textContent = "✨ 生成 AI 总结";
+        toast("生成失败: " + e.message);
+      }
+    };
+  }
+
+  const btnRegen = $("#btn-regen");
+  if (btnRegen) {
+    btnRegen.onclick = async () => {
+      btnRegen.disabled = true;
+      toast("正在重新生成…");
+      try {
+        const r = await api("/intel-station/api/summarize", { method: "POST", body: { id: d.id } });
+        if (r.ok) {
+          const updated = await api(`/intel-station/api/item/${d.id}`);
+          renderArticle(updated);
+          toast("摘要已更新");
+        } else {
+          throw new Error(r.error || "生成失败");
+        }
+      } catch (e) {
+        toast("生成失败: " + e.message);
+      }
+      btnRegen.disabled = false;
+    };
+  }
+
   $(".reader").scrollTop = 0;
 }
 

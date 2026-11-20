@@ -247,6 +247,21 @@ export function apply(ctx, config) {
           return sendJson(res, 200, JSON.parse(result));
         }
 
+        // ── API: summarize (AI 摘要) ──
+        if (method === 'POST' && rest === '/api/summarize') {
+          const apiKey = config?.deepseekApiKey;
+          if (!apiKey) {
+            return sendJson(res, 400, { error: '未配置 DeepSeek API key' });
+          }
+          const body = JSON.parse(await readBody(req));
+          const id = body.id;
+          if (!id) {
+            return sendJson(res, 400, { error: '缺少文章 id' });
+          }
+          const result = await runPy(PY, join(ENGINE_DIR, 'summarize.py'), [DB, id, apiKey]);
+          return sendJson(res, 200, JSON.parse(result));
+        }
+
         // ── API: config ──
         if (method === 'GET' && rest === '/api/config') {
           return sendJson(res, 200, {

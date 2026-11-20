@@ -62,7 +62,7 @@ https://github.com/scar119/liuer-intel-station
 - **来源健康度**：自动标出停更、低频、灌水的源
 - **周回顾**：产量趋势、最活跃来源
 - **已读/收藏**：状态跨会话保留
-- **AI 总结**（规划中）：接入你自己的 DeepSeek API key 后自动生成
+- **AI 总结**：接入你自己的 DeepSeek API key，一键生成文章摘要
 
 ## 快速开始
 
@@ -120,7 +120,7 @@ DSH 插件（Host 半边）
 
 | 限制 | 说明 | 计划 |
 |---|---|---|
-| **无 AI 摘要** | 「近期」视图只是近 7 天未读，没有 AI 策展 | v0.2 接入 DeepSeek API |
+| **AI 摘要需配置 API key** | 需在 DSH 插件设置里填 DeepSeek API key | — |
 | **更新需重启 DSH** | 修改代码后热重载会报 `duplicate route`，必须重启 | DSH 限制，暂无解 |
 | **数据目录固定** | 默认 `~/.liuer-intel-station`，无法在 GUI 改 | 后续加 Config schema |
 | **Windows 未测试** | 只在 macOS 验证过 | 需要社区反馈 |
