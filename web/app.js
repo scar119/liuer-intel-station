@@ -27,8 +27,7 @@ const S = {
 const VIEW_META = {
   unread: { title: "未读", empty: "没有未读内容了" },
   hot: { title: "近期", empty: "最近 7 天没有新内容" },
-  practice: { title: "实操落地", empty: "没有实操类内容" },
-  cognition: { title: "认知洞察", empty: "没有洞察类内容" },
+  filtered: { title: "精选", empty: "没有达到分数阈值的内容，去「过滤设置」调整关键词" },
   starred: { title: "收藏", empty: "还没有收藏" },
   all: { title: "全部", empty: "索引里还没有内容" },
 };
@@ -308,7 +307,7 @@ function syncHash() {
 function readHash() {
   const p = new URLSearchParams(location.hash.replace(/^#/, ""));
   const view = p.get("view");
-  if (["report", "weekly", "audit", "subscribe"].includes(view)) { S.mode = view; return; }
+  if (["weekly", "subscribe", "filters"].includes(view)) { S.mode = view; return; }
   if (view === "sources") S.view = "sources";
   else if (view && VIEW_META[view]) S.view = view;
   if (p.get("channel")) S.channel = p.get("channel");
@@ -324,6 +323,7 @@ function renderSidebar() {
   prim.innerHTML = "";
 
   const rows = [
+    { key: "filtered", label: "精选", count: b.filtered_count, badge: true },
     { key: "unread", label: "未读", count: b.unread, dot: true },
     { key: "hot", label: "近期", count: b.hot_unread },
     { key: "starred", label: "收藏", count: b.starred },
@@ -333,9 +333,8 @@ function renderSidebar() {
     const btn = el("button", `nav-item${S.view === r.key && !S.channel && !S.feed ? " active" : ""}${r.key === "hot" ? " hot-entry" : ""}`);
     btn.innerHTML =
       `${r.dot ? '<span class="dot"></span>' : '<span class="ico">' +
-        (r.key === "hot" ? "✦"
-          : r.key === "practice" ? "◈"
-          : r.key === "cognition" ? "◇"
+        (r.key === "filtered" ? "◉"
+          : r.key === "hot" ? "✦"
           : r.key === "starred" ? "★" : "▤") + "</span>"}` +
       `<span class="label">${r.label}</span>` +
       `<span class="count">${r.count ?? 0}</span>`;
@@ -362,6 +361,12 @@ function renderSidebar() {
   src.onclick = () => { S.view = "sources"; S.q = ""; S.channel = null; S.feed = null;
     refreshList(true); renderSidebar(); renderFilters(); syncHash(); };
   prim.appendChild(src);
+
+  // 过滤设置
+  const flt = el("button", `nav-item${S.mode === "filters" ? " active" : ""}`);
+  flt.innerHTML = `<span class="ico">⚙</span><span class="label">过滤设置</span>`;
+  flt.onclick = openFilters;
+  prim.appendChild(flt);
 
   const ch = $("#nav-channels");
   ch.innerHTML = "";
@@ -621,6 +626,9 @@ function buildCard(it, idx) {
         <span class="src">${esc(it.source || "未标注来源")}</span>
         <span class="sep">·</span>
         <span>${fmtTime(it.published_at)}</span>
+        ${typeof it.ai_score === "number" && it.ai_score > 0
+          ? `<span class="score-badge s${it.ai_score >= 70 ? "hi" : it.ai_score >= 40 ? "mid" : "lo"}">${it.ai_score}</span>`
+          : ""}
       </div>
       <p class="card-title">${hl(it.title || "(无标题)", S.q)}</p>
       ${it.preview ? `<div class="card-preview">${hl(it.preview, S.q)}</div>` : ""}
@@ -948,41 +956,6 @@ async function openSubscribe() {
   $(".reader").scrollTop = 0;
 }
 
-async function openAudit() {
-  S.mode = "audit";
-  syncHash();
-  renderSidebar();
-  document.querySelectorAll(".card.active").forEach((n) => n.classList.remove("active"));
-  $("#list-title").textContent = "OPML 瘦身方案";
-  $("#list-sub").textContent = "";
-  $("#items").innerHTML = `<div class="empty-list">
-      右侧是完整报告<br><br>
-      <a href="/intel-station/audit/keep.opml" download style="color:var(--brand)">精简订阅 keep.opml</a><br>
-      <a href="/intel-station/audit/dropped.opml" download style="color:var(--brand)">剔除清单 dropped.opml</a>
-    </div>`;
-  $("#reader-empty").hidden = true;
-  const body = $("#reader-body");
-  body.hidden = false;
-  body.innerHTML = `<div class="reader-loading">读取中…</div>`;
-  try {
-    const txt = await (await fetch("/intel-station/audit/report.md", { cache: "no-store" })).text();
-    body.innerHTML = `
-      <div class="reader-top">
-        <span class="rbtn" style="border-color:#ffd9c2;background:#fff1e9;color:#b8420a">OPML 瘦身方案</span>
-        <a class="rbtn" href="/intel-station/audit/keep.opml" download>下载 keep.opml</a>
-        <a class="rbtn" href="/intel-station/audit/dropped.opml" download>下载 dropped.opml</a>
-        <a class="rbtn" href="/intel-station/audit/review.opml" download>换入口清单</a>
-      </div>
-      <div class="audit-note">
-        报告由 <code>python3 folio/source_audit.py</code> 生成；要刷新探活结果，重跑一次即可。
-        直接改 OPML 加 <code>--apply</code>（会自动备份）。
-      </div>
-      ${renderMarkdown(txt)}`;
-    $(".reader").scrollTop = 0;
-  } catch (e) {
-    body.innerHTML = `<div class="reader-loading">读取失败：${esc(e.message)}</div>`;
-  }
-}
 
 async function openWeekly() {
   S.mode = "weekly";
@@ -1076,27 +1049,6 @@ async function openWeekly() {
   }
 }
 
-async function openReport() {
-  S.mode = "report";
-  syncHash();
-  document.querySelectorAll(".card.active").forEach((n) => n.classList.remove("active"));
-  $("#list-title").textContent = "今日日报";
-  $("#list-sub").textContent = "";
-  $("#items").innerHTML = `<div class="empty-list">右侧显示最新日报全文<br>← 点左侧任意频道返回列表</div>`;
-  $("#reader-empty").hidden = true;
-  const body = $("#reader-body");
-  body.hidden = false;
-  body.innerHTML = `<div class="reader-loading">加载中…</div>`;
-  try {
-    const rep = await api("/intel-station/api/report");
-    body.innerHTML = `
-      <div class="reader-top"><span class="rbtn" style="border-color:#ffd9c2;background:#fff1e9;color:#b8420a">最新日报 · ${rep.date}</span></div>
-      ${renderMarkdown(rep.markdown)}`;
-    $(".reader").scrollTop = 0;
-  } catch (e) {
-    body.innerHTML = `<div class="reader-loading">没有找到日报：${esc(e.message)}</div>`;
-  }
-}
 
 /* ───────────────────────── 状态变更 ───────────────────────── */
 async function markRead(ids, value = true) {
@@ -1321,10 +1273,9 @@ async function autoRefreshIfStale() {
   readHash();
   if (S.q) $("#search").value = S.q;
   renderFilters();
-  if (S.mode === "report") { renderSidebar(); openReport(); autoRefreshIfStale(); return; }
   if (S.mode === "weekly") { renderSidebar(); openWeekly(); autoRefreshIfStale(); return; }
-  if (S.mode === "audit") { renderSidebar(); openAudit(); autoRefreshIfStale(); return; }
   if (S.mode === "subscribe") { renderSidebar(); openSubscribe(); autoRefreshIfStale(); return; }
+  if (S.mode === "filters") { renderSidebar(); openFilters(); autoRefreshIfStale(); return; }
   refreshList(true);
   autoRefreshIfStale();
 })();
@@ -1360,3 +1311,100 @@ function showOnboarding() {
   };
   overlay.onclick = (e) => { if (e.target === overlay) $("#onboard-dismiss").click(); };
 }
+
+async function openFilters() {
+  S.mode = "filters";
+  syncHash();
+  renderSidebar();
+  document.querySelectorAll(".card.active").forEach((n) => n.classList.remove("active"));
+  $("#list-title").textContent = "过滤设置";
+  $("#list-sub").textContent = "";
+  $("#items").innerHTML = `<div class="empty-list">左侧配置关键词规则<br>保存后点「应用到已有内容」<br><br>← 点左侧任意入口返回列表</div>`;
+  $("#reader-empty").hidden = true;
+  const body = $("#reader-body");
+  body.hidden = false;
+
+  body.innerHTML = `<div class="filters-page">
+    <h1>过滤设置</h1>
+    <p class="filters-hint">配置关键词规则，从全量抓取里筛出你真正关心的内容。</p>
+
+    <div class="filter-section">
+      <h3>包含关键词</h3>
+      <p class="filter-desc">命中越多分越高 —— 标题 +40 · 摘要 +20 · 正文 +10</p>
+      <textarea id="filter-include" class="filter-textarea" rows="5" placeholder="AI
+LLM
+创业"></textarea>
+    </div>
+
+    <div class="filter-section">
+      <h3>排除关键词</h3>
+      <p class="filter-desc">命中任意一个直接扣 100 分（用于挡掉招聘、广告等噪音）</p>
+      <textarea id="filter-exclude" class="filter-textarea" rows="4" placeholder="招聘
+广告
+推广"></textarea>
+    </div>
+
+    <div class="filter-section">
+      <h3>最低分数</h3>
+      <p class="filter-desc">「精选」视图只显示分数 ≥ 此值的内容（0-100，建议 40-60）</p>
+      <input id="filter-minscore" type="number" min="0" max="100" value="50" class="filter-input">
+      <span class="filter-minscore-hint">分数越高越严格</span>
+    </div>
+
+    <div class="filter-actions">
+      <button id="btn-save-filters" class="filter-save-btn">保存设置</button>
+      <button id="btn-apply-filters" class="filter-apply-btn">应用到已有内容</button>
+    </div>
+    <p class="filter-status" id="filter-status"></p>
+  </div>`;
+
+  // 加载当前配置
+  try {
+    const config = await api("/intel-station/api/config");
+    $("#filter-include").value = (config.include || []).join("\n");
+    $("#filter-exclude").value = (config.exclude || []).join("\n");
+    $("#filter-minscore").value = config.minScore ?? 50;
+  } catch (e) {
+    $("#filter-status").textContent = "加载配置失败：" + e.message;
+  }
+
+  const parseLines = (v) => v.split("\n").map((x) => x.trim()).filter(Boolean);
+
+  $("#btn-save-filters").onclick = async () => {
+    const btn = $("#btn-save-filters");
+    btn.disabled = true;
+    try {
+      await api("/intel-station/api/config", {
+        method: "POST",
+        body: {
+          include: parseLines($("#filter-include").value),
+          exclude: parseLines($("#filter-exclude").value),
+          minScore: parseInt($("#filter-minscore").value, 10) || 50,
+        },
+      });
+      $("#filter-status").textContent = "已保存。点「应用到已有内容」让规则对旧内容生效。";
+      await reloadBoot();
+      renderSidebar();
+    } catch (e) {
+      $("#filter-status").textContent = "保存失败：" + e.message;
+    }
+    btn.disabled = false;
+  };
+
+  $("#btn-apply-filters").onclick = async () => {
+    const btn = $("#btn-apply-filters");
+    btn.disabled = true;
+    btn.textContent = "应用中…";
+    try {
+      const r = await api("/intel-station/api/apply-filters", { method: "POST" });
+      $("#filter-status").textContent = `已对 ${r.scored} 篇内容重新评分。`;
+      await reloadBoot();
+      renderSidebar();
+    } catch (e) {
+      $("#filter-status").textContent = "应用失败：" + e.message;
+    }
+    btn.disabled = false;
+    btn.textContent = "应用到已有内容";
+  };
+}
+

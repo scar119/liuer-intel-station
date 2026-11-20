@@ -20,7 +20,7 @@ def clamp(value: int, lo: int, hi: int) -> int:
     return max(lo, min(hi, value))
 
 
-def build_query(view: str, feed: str, q: str, limit: int, offset: int):
+def build_query(view: str, feed: str, q: str, limit: int, offset: int, min_score: int = 0):
     """Return (sql, params, mode) for the requested query."""
     conditions = []
     params = []
@@ -36,6 +36,10 @@ def build_query(view: str, feed: str, q: str, limit: int, offset: int):
         cutoff = int(time.time()) - 7 * 86400
         conditions.append("e.published_ts >= ?")
         params.append(cutoff)
+    elif view == "filtered":
+        # 按分数筛选
+        conditions.append("e.ai_score >= ?")
+        params.append(min_score)
     # "all" → no extra condition (1=1 implicit)
 
     # Feed filter
@@ -61,13 +65,13 @@ def build_query(view: str, feed: str, q: str, limit: int, offset: int):
         # FTS5 query: join entry_fts with entries, order by bm25
         sql = (
             "SELECT e.id, e.title, e.source, e.published_ts, e.published_at, "
-            "e.summary, e.read, e.starred, e.link "
+            "e.summary, e.read, e.starred, e.link, e.ai_score "
             "FROM entries e "
             "JOIN entry_fts f ON e.rowid = f.rowid "
             f"{where_clause} AND f.entry_fts MATCH ? "
             if conditions
             else "SELECT e.id, e.title, e.source, e.published_ts, e.published_at, "
-            "e.summary, e.read, e.starred, e.link "
+            "e.summary, e.read, e.starred, e.link, e.ai_score "
             "FROM entries e "
             "JOIN entry_fts f ON e.rowid = f.rowid "
             "WHERE f.entry_fts MATCH ? "
@@ -90,6 +94,9 @@ def build_query(view: str, feed: str, q: str, limit: int, offset: int):
             cutoff = int(time.time()) - 7 * 86400
             fts_conditions.append("e.published_ts >= ?")
             fts_params.append(cutoff)
+        elif view == "filtered":
+            fts_conditions.append("e.ai_score >= ?")
+            fts_params.append(min_score)
 
         if feed:
             fts_conditions.append("e.source = ?")
@@ -103,7 +110,7 @@ def build_query(view: str, feed: str, q: str, limit: int, offset: int):
 
         sql = (
             "SELECT e.id, e.title, e.source, e.published_ts, e.published_at, "
-            "e.summary, e.read, e.starred, e.link "
+            "e.summary, e.read, e.starred, e.link, e.ai_score "
             "FROM entries e "
             "JOIN entry_fts f ON e.rowid = f.rowid "
             f"{fts_where}f.entry_fts MATCH ? "
@@ -119,7 +126,7 @@ def build_query(view: str, feed: str, q: str, limit: int, offset: int):
     order = "ORDER BY e.published_ts DESC"
     sql = (
         "SELECT e.id, e.title, e.source, e.published_ts, e.published_at, "
-        "e.summary, e.read, e.starred, e.link "
+        "e.summary, e.read, e.starred, e.link, e.ai_score "
         f"FROM entries e {where_clause} "
         f"{order} LIMIT ? OFFSET ?"
     )
@@ -139,7 +146,7 @@ def truncate(text: str | None, max_len: int = 220) -> str:
 def main():
     parser = argparse.ArgumentParser(description="Query RSS entries from SQLite")
     parser.add_argument("db_path", help="Path to SQLite database")
-    parser.add_argument("--view", default="all", choices=["unread", "all", "starred", "hot"])
+    parser.add_argument("--view", default="all", choices=["unread", "all", "starred", "hot", "filtered"])
     parser.add_argument("--limit", type=int, default=50)
     parser.add_argument("--offset", type=int, default=0)
     parser.add_argument("--channel", default="", help="Channel filter (reserved)")
@@ -155,7 +162,21 @@ def main():
     try:
         conn.execute("PRAGMA busy_timeout=5000")
 
-        sql, params, mode = build_query(args.view, args.feed, args.q, limit, offset)
+        # filtered 视图需要按配置里的 minScore 过滤
+        min_score = 0
+        if args.view == "filtered":
+            try:
+                import os
+                cfg_path = os.path.join(os.path.dirname(os.path.abspath(args.db_path)), "config.json")
+                if os.path.exists(cfg_path):
+                    with open(cfg_path, "r", encoding="utf-8") as f:
+                        min_score = int(json.load(f).get("minScore", 50))
+                else:
+                    min_score = 50
+            except Exception:
+                min_score = 50
+
+        sql, params, mode = build_query(args.view, args.feed, args.q, limit, offset, min_score)
         rows = conn.execute(sql, params).fetchall()
 
         has_more = len(rows) > limit
@@ -165,6 +186,11 @@ def main():
         items = []
         for row in rows:
             summary_text = truncate(row["summary"], 220)
+            # ai_score 列可能不存在（旧库），容错取值
+            try:
+                score = row["ai_score"]
+            except (IndexError, KeyError):
+                score = None
             items.append({
                 "id": row["id"],
                 "title": row["title"] or "",
@@ -176,6 +202,7 @@ def main():
                 "starred": row["starred"],
                 "link": row["link"] or "",
                 "preview": summary_text,
+                "ai_score": score,
             })
 
         result = {

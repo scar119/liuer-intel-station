@@ -9,9 +9,24 @@ Uses only Python stdlib (sqlite3, json, sys, time).
 """
 
 import json
+import os
 import sqlite3
 import sys
 import time
+
+
+def load_min_score(db_path):
+    """Load minScore from config.json."""
+    try:
+        data_dir = os.path.dirname(db_path)
+        config_file = os.path.join(data_dir, "config.json")
+        if os.path.exists(config_file):
+            with open(config_file, "r", encoding="utf-8") as f:
+                config = json.load(f)
+                return config.get("minScore", 50)
+    except:
+        pass
+    return 50
 
 
 def get_stats(db_path: str) -> dict:
@@ -78,6 +93,19 @@ def get_stats(db_path: str) -> dict:
     )
     feeds = [{"source": row["source"], "count": row["n"], "unread": row["u"]} for row in cur.fetchall()]
 
+    # filtered_count: entries with ai_score >= minScore
+    min_score = load_min_score(db_path)
+    filtered_count = 0
+    try:
+        cur.execute(
+            "SELECT COUNT(*) FROM entries WHERE ai_score >= ? AND read = 0",
+            (min_score,),
+        )
+        filtered_count = cur.fetchone()[0]
+    except sqlite3.OperationalError:
+        # ai_score column may not exist
+        pass
+
     conn.close()
 
     return {
@@ -92,6 +120,7 @@ def get_stats(db_path: str) -> dict:
         "feeds": feeds,
         "practice_unread": 0,
         "cognition_unread": 0,
+        "filtered_count": filtered_count,
     }
 
 

@@ -191,6 +191,10 @@ export function apply(ctx, config) {
         // ── API: fetch ──
         if (method === 'POST' && rest === '/api/fetch') {
           const result = await runPy(PY, join(ENGINE_DIR, 'fetch_feeds.py'), [DATA, DB]);
+          // 抓取后自动应用过滤规则
+          try {
+            await runPy(PY, join(ENGINE_DIR, 'apply_filters.py'), [DATA, DB]);
+          } catch { /* 过滤失败不影响抓取结果 */ }
           return sendJson(res, 200, { ok: true, stats: JSON.parse(result) });
         }
 
@@ -262,12 +266,45 @@ export function apply(ctx, config) {
           return sendJson(res, 200, JSON.parse(result));
         }
 
-        // ── API: config ──
+        // ── API: apply filters (应用过滤规则) ──
+        if (method === 'POST' && rest === '/api/apply-filters') {
+          const result = await runPy(PY, join(ENGINE_DIR, 'apply_filters.py'), [DATA, DB]);
+          return sendJson(res, 200, JSON.parse(result));
+        }
+
+        // ── API: config (读取配置) ──
         if (method === 'GET' && rest === '/api/config') {
+          const configFile = join(DATA, 'config.json');
+          let config = {};
+          if (existsSync(configFile)) {
+            try {
+              config = JSON.parse(readFileSync(configFile, 'utf-8'));
+            } catch { /* ignore */ }
+          }
           return sendJson(res, 200, {
-            dataDir: DATA, pythonPath: PY,
+            ...config,
+            dataDir: DATA,
+            pythonPath: PY,
             hasApiKey: !!(config?.deepseekApiKey),
           });
+        }
+
+        // ── API: config (写入配置) ──
+        if (method === 'POST' && rest === '/api/config') {
+          const body = JSON.parse(await readBody(req));
+          const configFile = join(DATA, 'config.json');
+          let existing = {};
+          if (existsSync(configFile)) {
+            try {
+              existing = JSON.parse(readFileSync(configFile, 'utf-8'));
+            } catch { /* ignore */ }
+          }
+          // 合并配置（不覆盖 dataDir/pythonPath 等系统字段）
+          const updated = { ...existing, ...body };
+          delete updated.dataDir;
+          delete updated.pythonPath;
+          writeFileSync(configFile, JSON.stringify(updated, null, 2));
+          return sendJson(res, 200, { ok: true, config: updated });
         }
 
         // 404

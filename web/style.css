@@ -939,3 +939,119 @@ body {
   opacity: 0.3;
   cursor: default;
 }
+
+/* 过滤设置页面 */
+.filters-page {
+  max-width: 800px;
+  margin: 20px auto;
+  padding: 0 20px;
+}
+.filters-page h1 {
+  font-size: 24px;
+  margin-bottom: 10px;
+}
+.filter-section {
+  margin: 20px 0;
+}
+.filter-section h3 {
+  font-size: 16px;
+  margin-bottom: 8px;
+}
+.filter-textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--border, #e0e0e0);
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: inherit;
+  resize: vertical;
+}
+.filter-input {
+  width: 100px;
+  padding: 8px;
+  border: 1px solid var(--border, #e0e0e0);
+  border-radius: 6px;
+  font-size: 14px;
+}
+.filter-save-btn, .filter-apply-btn {
+  padding: 10px 20px;
+  margin-right: 10px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.filter-save-btn {
+  background: var(--accent, #0066cc);
+  color: white;
+}
+.filter-save-btn:hover {
+  opacity: 0.9;
+}
+.filter-apply-btn {
+  background: var(--card-bg, #fafafa);
+  border: 1px solid var(--border, #e0e0e0);
+}
+.filter-apply-btn:hover {
+  background: var(--border, #e0e0e0);
+}
+.filter-apply-btn:disabled, .filter-save-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* 卡片分数徽章 */
+.score-badge {
+  margin-left: auto;
+  padding: 1px 6px;
+  border-radius: 9px;
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.5;
+}
+.score-badge.hi  { background: #e8f5e9; color: #2e7d32; }
+.score-badge.mid { background: #fff8e1; color: #f57f17; }
+.score-badge.lo  { background: #f5f5f5; color: #757575; }
+@media (prefers-color-scheme: dark) {
+  .score-badge.hi  { background: #1b3a1e; color: #81c784; }
+  .score-badge.mid { background: #3d3011; color: #ffb74d; }
+  .score-badge.lo  { background: #2a2a2a; color: #9e9e9e; }
+}
+
+/* 过滤设置页（右栏版本） */
+.filters-page { padding: 8px 4px 40px; max-width: 720px; }
+.filters-page h1 { font-size: 20px; margin: 0 0 6px; }
+.filters-hint { color: #9a9a94; font-size: 13px; margin: 0 0 22px; }
+.filter-section { margin: 0 0 22px; }
+.filter-section h3 { font-size: 14px; margin: 0 0 4px; font-weight: 600; }
+.filter-desc { color: #9a9a94; font-size: 12px; margin: 0 0 8px; line-height: 1.5; }
+.filter-textarea {
+  width: 100%; box-sizing: border-box; padding: 10px 12px;
+  border: 1px solid #e0e0e0; border-radius: 8px;
+  font-size: 13px; font-family: inherit; line-height: 1.6;
+  resize: vertical; background: #fff; color: inherit;
+}
+.filter-textarea:focus { outline: none; border-color: #0066cc; }
+.filter-input {
+  width: 90px; padding: 8px 10px; border: 1px solid #e0e0e0;
+  border-radius: 8px; font-size: 14px; background: #fff; color: inherit;
+}
+.filter-input:focus { outline: none; border-color: #0066cc; }
+.filter-minscore-hint { margin-left: 10px; color: #9a9a94; font-size: 12px; }
+.filter-actions { display: flex; gap: 10px; margin-top: 26px; }
+.filter-save-btn, .filter-apply-btn {
+  padding: 9px 18px; border-radius: 8px; font-size: 13px;
+  cursor: pointer; transition: opacity .15s;
+}
+.filter-save-btn { background: #0066cc; color: #fff; border: none; }
+.filter-save-btn:hover:not(:disabled) { opacity: .88; }
+.filter-apply-btn { background: #fff; border: 1px solid #e0e0e0; color: inherit; }
+.filter-apply-btn:hover:not(:disabled) { background: #f5f5f5; }
+.filter-save-btn:disabled, .filter-apply-btn:disabled { opacity: .5; cursor: default; }
+.filter-status { margin-top: 14px; font-size: 13px; color: #2e7d32; min-height: 18px; }
+@media (prefers-color-scheme: dark) {
+  .filter-textarea, .filter-input, .filter-apply-btn { background: #1e1e1e; border-color: #3a3a3a; }
+  .filter-status { color: #81c784; }
+}
