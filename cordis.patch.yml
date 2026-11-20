@@ -1,0 +1,4 @@
+- insert:
+    - id: liuer-intel-station
+      name: '@liuer/intel-station'
+      config: {}

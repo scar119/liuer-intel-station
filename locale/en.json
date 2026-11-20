@@ -1,0 +1,8 @@
+{
+  "meta": {
+    "title": "Liuer AI Intel Station",
+    "description": "Local RSS reader with three-pane layout, full-text search, source health monitoring, and OPML import. Built-in RSS fetch engine — no external pipeline needed. Add feeds manually, paste in bulk, or import OPML. Optional DeepSeek API integration for AI summaries.",
+    "detail": "docs/DETAIL.md"
+  },
+  "panel": "Intel"
+}

@@ -1,0 +1,48 @@
+{
+  "name": "@liuer/intel-station",
+  "version": "0.1.0",
+  "private": false,
+  "type": "module",
+  "description": "六耳 AI资讯情报站 — 本地 RSS 阅读器，三栏布局，全文搜索，来源健康度，OPML 导入",
+  "keywords": [
+    "rss",
+    "reader",
+    "intel",
+    "ai",
+    "dsh",
+    "deepseek-harness"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/scar119/liuer-intel-station"
+  },
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "docs",
+    "icon.svg",
+    "web",
+    "engines",
+    "LICENSE",
+    "README.md"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": []
+    }
+  }
+}

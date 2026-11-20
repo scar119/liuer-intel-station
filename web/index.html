@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>六耳 AI资讯情报站</title>
+<link rel="icon" href="web/favicon.png" type="image/png" />
+<link rel="apple-touch-icon" href="web/logo.png" />
+<link rel="stylesheet" href="web/style.css" />
+</head>
+<body>
+<div class="app">
+
+  <!-- 移动端汉堡按钮 -->
+  <button class="mobile-menu-btn" id="btn-mobile-menu" aria-label="菜单">
+    <svg viewBox="0 0 24 24" width="20" height="20"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M4 7h16M4 12h16M4 17h16"/></svg>
+  </button>
+  <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
+  <!-- ───────────── 左栏 ───────────── -->
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <img class="brand-logo" src="web/logo.png" alt="六耳" width="34" height="34" />
+      <button class="icon-btn" id="btn-refresh" title="增量刷新索引">
+        <svg viewBox="0 0 24 24" width="15" height="15"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6"/></svg>
+      </button>
+    </div>
+
+    <nav class="nav" id="nav-primary"></nav>
+
+    <div class="section">
+      <div class="section-head"><span>频道</span></div>
+      <nav class="nav" id="nav-channels"></nav>
+    </div>
+
+    <div class="section">
+      <div class="section-head"><span>来源</span><span class="hint">按数量</span></div>
+      <nav class="nav nav-feeds" id="nav-feeds"></nav>
+    </div>
+
+    <div class="sidebar-foot" id="sidebar-foot"></div>
+  </aside>
+
+  <!-- ───────────── 中栏 ───────────── -->
+  <section class="listpane">
+    <header class="list-head">
+      <div class="list-title-wrap">
+        <h1 class="list-title" id="list-title">未读</h1>
+        <span class="list-sub" id="list-sub"></span>
+      </div>
+      <div class="list-tools">
+        <button class="icon-btn" id="btn-markall" title="标记以上为已读">
+          <svg viewBox="0 0 24 24" width="16" height="16"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M4 12.5l5 5L20 6.5"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <div class="filters" id="filters"></div>
+
+    <div class="searchbar">
+      <svg viewBox="0 0 24 24" width="14" height="14"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zm5.5-1.5L21 21"/></svg>
+      <input id="search" type="search" placeholder="搜索标题 / 摘要 / 来源" autocomplete="off" />
+      <kbd>/</kbd>
+    </div>
+
+    <div class="items" id="items"></div>
+    <div class="list-foot" id="list-foot"></div>
+  </section>
+
+  <!-- ───────────── 右栏 ───────────── -->
+  <main class="reader" id="reader">
+    <div class="reader-empty" id="reader-empty">
+      <img class="empty-mascot" src="web/mascot.png" alt="六耳" />
+      <p>选一条内容开始读</p>
+      <span>j / k 切换 · m 已读 · s 收藏</span>
+    </div>
+    <article class="reader-body" id="reader-body" hidden></article>
+  </main>
+
+</div>
+
+<div class="toast" id="toast"></div>
+<script src="web/app.js"></script>
+</body>
+</html>
