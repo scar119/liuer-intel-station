@@ -121,7 +121,9 @@ export function apply(ctx, config) {
     } catch { /* fetch 时会再试 */ }
   }
 
-  ctx.webServer.register({
+  // register() 返回 disposer —— 必须用 ctx.effect 绑定到插件生命周期，
+  // 否则卸载/热重载时路由泄漏，再次启用会撞 duplicate prefix route
+  ctx.effect(() => ctx.webServer.register({
     kind: 'prefix',
     path: BASE,
     async handler(req, res) {
@@ -360,5 +362,5 @@ export function apply(ctx, config) {
         return sendJson(res, 500, { error: e.message || 'internal error' });
       }
     },
-  });
+  }));
 }

@@ -59,9 +59,11 @@ dsh plugin --profile web add github:scar119/liuer-intel-station
 
 或在 DSH 界面里：插件 → 从 URL 安装 → 粘贴仓库地址。
 
-### 装完必须重启 DSH
+### 装完如果侧栏没出现，重启 DSH
 
-插件注册的是 HTTP 路由，热加载会撞 `duplicate prefix route` 冲突。**只有冷启动才能完整挂上**，重启后侧栏出现「情报站」。
+多数情况装完就生效。侧栏没有「情报站」图标时，重启一次 DSH（新安装的 JS 模块需重新加载）。
+
+之后的版本更新不用重启：禁用再启用插件即可，HTTP 路由会正确注销和重新注册。
 
 ## 首次使用
 
@@ -109,7 +111,6 @@ dsh plugin --profile web add github:scar119/liuer-intel-station
 
 ## 限制
 
-- **更新后必须重启 DSH** —— HTTP 路由热加载冲突，暂时无解
 - **数据目录改动需环境变量** —— `LIUER_DATA_DIR`，界面里改不了
 - **Windows 未实测** —— 只在 macOS 验证过
 - **只支持 RSS/Atom** —— JSON Feed 暂不支持

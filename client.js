@@ -80,7 +80,18 @@ window.__ModuleLoader__.load({
             padding: '9px 16px', borderBottom: '1px solid var(--line, #E4E4E0)',
           },
         },
-          h('span', { style: { fontWeight: 700, fontSize: 14 } }, '六耳'),
+          h('span', {
+            style: {
+              display: 'flex', alignItems: 'baseline', gap: 5,
+              fontWeight: 700, fontSize: 14, letterSpacing: '.01em',
+            },
+          },
+            '六耳',
+            h('span', {
+              style: {
+                fontWeight: 500, fontSize: 13, opacity: .55, letterSpacing: 0,
+              },
+            }, '情报站')),
           h('span', { style: { flex: 1 } }),
           h(StatusDot, { status }),
           h('button', {

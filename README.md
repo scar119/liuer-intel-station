@@ -54,11 +54,11 @@ dsh plugin --profile web add github:scar119/liuer-intel-station
 
 或者在 DSH 界面里：**插件 → 从 URL 安装** → 粘贴 `https://github.com/scar119/liuer-intel-station`
 
-### 装完必须重启 DSH
+### 装完如果侧栏没出现，重启 DSH
 
-⚠️ **这一步不能省。** 插件注册的是 HTTP 路由，热加载会报 `duplicate prefix route` 冲突，必须重启才能完整生效。
+多数情况装完就生效。如果侧栏没有「情报站」图标，重启 DSH 一次（新安装的 JS 模块需要重新加载）。
 
-重启后侧栏出现「情报站」图标。
+**之后的版本更新不用重启**：更新代码后禁用再启用一次插件即可，路由会正确注销和重新注册。
 
 ---
 
@@ -330,7 +330,6 @@ LIUER_DATA_DIR=/Volumes/ssd/liuer dsh
 | 限制 | 说明 | 计划 |
 |---|---|---|
 | **AI 功能需配置 API key** | AI 摘要和 AI 打分都要 DeepSeek API key | — |
-| **更新需重启 DSH** | 修改代码后热重载会报 `duplicate route`，必须重启 | DSH 限制，暂无解 |
 | **数据目录要改环境变量** | 默认 `~/.liuer-intel-station`，改的话设 `LIUER_DATA_DIR` | 后续加界面设置 |
 | **Windows 未测试** | 只在 macOS 验证过 | 需要社区反馈 |
 
@@ -338,7 +337,7 @@ LIUER_DATA_DIR=/Volumes/ssd/liuer dsh
 
 ### 装完侧栏没有「情报站」
 
-**必须重启 DSH。** 插件注册 HTTP 路由，热加载会撞 `duplicate prefix route`，只有冷启动才能完整挂上。
+**重启一次 DSH。** 新安装的插件需要重新加载 JS 模块才能挂上。之后的更新不需要重启。
 
 ### 点了没反应 / 页面空白
 
@@ -380,7 +379,11 @@ python3 --version   # 要有输出，且 >= 3.9
 
 ### 更新插件后没变化
 
-改代码 / 更新版本后**必须重启 DSH**，理由同上。
+按这个顺序试：
+
+1. DSH 插件列表里把这个插件**禁用 → 再启用**（多数情况到这就够了）
+2. 还不行就重启 DSH
+3. 界面用浏览器缓存的话，强制刷新（`Cmd+Shift+R`）
 
 ### 数据会同步到云端吗
 
