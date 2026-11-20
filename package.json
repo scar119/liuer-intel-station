@@ -44,5 +44,6 @@
       "immediately": true,
       "inject": []
     }
-  }
+  },
+  "main": "index.js"
 }
