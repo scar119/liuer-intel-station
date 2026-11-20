@@ -365,7 +365,7 @@ window.__ModuleLoader__.load({
 
 ---
 
-## 12 个已经踩过的坑（每条都真实发生过）
+## 13 个已经踩过的坑（每条都真实发生过）
 
 **坑 1 · 路由泄漏导致"更新必须重启"**
 `webServer.register()` 返回 disposer。直接调用而不交给 `ctx.effect`，卸载时路由不注销，再次启用撞 `duplicate prefix route`。**必须** `ctx.effect(() => ctx.webServer.register({...}))`。
