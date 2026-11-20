@@ -2,13 +2,36 @@
 
 本地 RSS 阅读器，三栏布局，全文搜索，来源健康度，OPML 导入。一个 DeepSeek Harness 插件，装好就能用，不依赖任何外部流水线。
 
+## 效果预览
+
+### 桌面端
+![桌面端主界面](docs/screenshots/desktop-main.png)
+
+三栏布局：侧栏导航 → 卡片时间线 → 正文阅读
+
+### 移动端
+![移动端主界面](docs/screenshots/mobile-main.png)
+
+汉堡菜单 + 单栏阅读，375px 自适应
+
+### 订阅管理
+![订阅管理页面](docs/screenshots/subscribe-page.png)
+
+单条添加 / 批量粘贴 / OPML 导入，三种方式
+
+### 来源健康度
+![来源健康页面](docs/screenshots/sources-page.png)
+
+自动标出停更、低频、灌水的源
+
 ## 安装
 
 ```bash
 # 终端一行命令（装完重启 DSH）
 dsh plugin --profile web add github:scar119/liuer-intel-station
 
-# 或者 DSH 界面里：插件 → 发现 → 搜索「六耳」→ 点安装
+# 或者 DSH 界面里：插件 → 从 URL 安装 → 粘贴
+https://github.com/scar119/liuer-intel-station
 ```
 
 装完重启，侧边栏出现「情报站」图标。
@@ -21,7 +44,7 @@ dsh plugin --profile web add github:scar119/liuer-intel-station
 
 ```
 ┌──────────┬──────────────┬─────────────────────┐
-│ 未读/精选 │ 筛选 + 搜索   │ 标题                 │
+│ 未读/近期 │ 筛选 + 搜索   │ 标题                 │
 │ 收藏/全部 │ ───────────  │ 来源 · 时间          │
 │ 订阅管理  │ 卡片流        │ ┌ AI 总结（可选）──┐ │
 │ 本周回顾  │ (按天分隔)    │ └─────────────────┘ │
@@ -46,7 +69,7 @@ dsh plugin --profile web add github:scar119/liuer-intel-station
 1. 装完重启 DSH，侧栏点「情报站」
 2. 进「订阅管理」→ 粘贴你的 RSS 地址（或导入 OPML）
 3. 点「立即抓取」
-4. 回到「未读」或「精选」开始阅读
+4. 回到「未读」或「近期」开始阅读
 
 ## 键盘快捷键
 
@@ -93,15 +116,6 @@ DSH 插件（Host 半边）
 | `pythonPath` | `python3` | Python 解释器路径 |
 | `deepseekApiKey` | 空 | DeepSeek API key（用于 AI 总结，规划中） |
 
-## 与「每日信息萃取」的关系
-
-这个插件是从作者个人的「AI 每日信息萃取」系统提炼出来的独立版本：
-
-- 原系统：每天 cron 抓取 → AI 打分分类 → 生成 Markdown 日报
-- 本插件：**只保留了展示层 + 抓取层**，去掉了 AI 分类和日报生成，让任何用户都能用自己的 RSS 源直接用
-
-如果你的需求是「每天自动抓 + AI 分类 + 日报」，那是另一套系统；本插件专注「把 RSS 变成好读的面板」。
-
 ## 已知限制
 
 | 限制 | 说明 | 计划 |
@@ -128,7 +142,7 @@ DSH 插件（Host 半边）
 ## 开发
 
 ```bash
-git clone <repo>
+git clone https://github.com/scar119/liuer-intel-station
 cd liuer-intel-station
 # 引擎端到端测试
 python3 engines/schema.py /tmp/test.db

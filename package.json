@@ -33,7 +33,8 @@
     "web",
     "engines",
     "LICENSE",
-    "README.md"
+    "README.md",
+    "docs/screenshots"
   ],
   "dsh": {
     "bundle": {
