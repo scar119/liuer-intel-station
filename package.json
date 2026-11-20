@@ -34,7 +34,7 @@
     "engines",
     "LICENSE",
     "README.md",
-    "docs/screenshots"
+    "install-schedule.sh"
   ],
   "dsh": {
     "bundle": {

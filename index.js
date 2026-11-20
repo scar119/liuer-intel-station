@@ -272,6 +272,19 @@ export function apply(ctx, config) {
           return sendJson(res, 200, JSON.parse(result));
         }
 
+        // ── API: ai-score (AI 打分，v2 混合方案) ──
+        if (method === 'POST' && rest === '/api/ai-score') {
+          const apiKey = config?.deepseekApiKey;
+          if (!apiKey) {
+            return sendJson(res, 400, { error: '未配置 DeepSeek API key（在 DSH 插件设置里填）' });
+          }
+          const body = JSON.parse(await readBody(req) || '{}');
+          const limit = String(body.limit || 50);
+          const args = [DATA, DB, apiKey, '--limit', limit];
+          const result = await runPy(PY, join(ENGINE_DIR, 'ai_score.py'), args);
+          return sendJson(res, 200, JSON.parse(result));
+        }
+
         // ── API: config (读取配置) ──
         if (method === 'GET' && rest === '/api/config') {
           const configFile = join(DATA, 'config.json');

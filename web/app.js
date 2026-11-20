@@ -1351,9 +1351,16 @@ LLM
       <span class="filter-minscore-hint">分数越高越严格</span>
     </div>
 
+    <div class="filter-section">
+      <h3>关注方向 <span class="filter-opt">AI 打分用</span></h3>
+      <p class="filter-desc">用一段话描述你关心什么，AI 会据此给内容打 0-100 分（比关键词准，但要消耗 API）</p>
+      <textarea id="filter-interests" class="filter-textarea" rows="3" placeholder="我关注 AI 大模型进展、创业融资、芯片供应链，不关心消费电子和游戏"></textarea>
+    </div>
+
     <div class="filter-actions">
       <button id="btn-save-filters" class="filter-save-btn">保存设置</button>
-      <button id="btn-apply-filters" class="filter-apply-btn">应用到已有内容</button>
+      <button id="btn-apply-filters" class="filter-apply-btn">规则重新打分</button>
+      <button id="btn-ai-score" class="filter-ai-btn">✨ AI 打分</button>
     </div>
     <p class="filter-status" id="filter-status"></p>
   </div>`;
@@ -1364,6 +1371,7 @@ LLM
     $("#filter-include").value = (config.include || []).join("\n");
     $("#filter-exclude").value = (config.exclude || []).join("\n");
     $("#filter-minscore").value = config.minScore ?? 50;
+    $("#filter-interests").value = config.interests || "";
   } catch (e) {
     $("#filter-status").textContent = "加载配置失败：" + e.message;
   }
@@ -1380,6 +1388,7 @@ LLM
           include: parseLines($("#filter-include").value),
           exclude: parseLines($("#filter-exclude").value),
           minScore: parseInt($("#filter-minscore").value, 10) || 50,
+          interests: $("#filter-interests").value.trim(),
         },
       });
       $("#filter-status").textContent = "已保存。点「应用到已有内容」让规则对旧内容生效。";
@@ -1404,7 +1413,28 @@ LLM
       $("#filter-status").textContent = "应用失败：" + e.message;
     }
     btn.disabled = false;
-    btn.textContent = "应用到已有内容";
+    btn.textContent = "规则重新打分";
+  };
+
+  $("#btn-ai-score").onclick = async () => {
+    const btn = $("#btn-ai-score");
+    const status = $("#filter-status");
+    btn.disabled = true;
+    btn.textContent = "打分中…";
+    status.textContent = "正在调用 AI 打分，内容多时需要一会儿…";
+    try {
+      const r = await api("/intel-station/api/ai-score", { method: "POST", body: { limit: 50 } });
+      if (r.ok === false) throw new Error(r.error || "打分失败");
+      status.textContent = `AI 已为 ${r.scored} 篇内容打分` +
+        (r.failed ? `，${r.failed} 篇失败` : "") +
+        (r.candidates ? `（候选 ${r.candidates} 篇）` : "");
+      await reloadBoot();
+      renderSidebar();
+    } catch (e) {
+      status.textContent = "AI 打分失败：" + e.message;
+    }
+    btn.disabled = false;
+    btn.textContent = "✨ AI 打分";
   };
 }
 

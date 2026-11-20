@@ -98,7 +98,7 @@ def get_stats(db_path: str) -> dict:
     filtered_count = 0
     try:
         cur.execute(
-            "SELECT COUNT(*) FROM entries WHERE ai_score >= ? AND read = 0",
+            "SELECT COUNT(*) FROM entries WHERE COALESCE(llm_score, ai_score, 0) >= ? AND read = 0",
             (min_score,),
         )
         filtered_count = cur.fetchone()[0]

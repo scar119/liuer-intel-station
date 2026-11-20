@@ -69,7 +69,8 @@ https://github.com/scar119/liuer-intel-station
 - **全文搜索**：SQLite FTS5 trigram，中文子串可搜，含正文前 600 字
 - **订阅管理**：单条添加 / 批量粘贴 / OPML 导入，三种方式
 - **内置 RSS 抓取**：自带抓取引擎，无需外部流水线
-- **内容筛选**：关键词规则打分，从 100 条里筛出你关心的 10 条
+- **内容筛选（两级）**：关键词规则打分（不花钱）+ AI 语义打分（更准）
+- **自动定时抓取**：一行命令装好每日自动更新
 - **来源健康度**：自动标出停更、低频、灌水的源
 - **周回顾**：产量趋势、最活跃来源
 - **已读/收藏**：状态跨会话保留
@@ -123,7 +124,41 @@ https://github.com/scar119/liuer-intel-station
 
 打开「精选」视图，卡片右上角会显示每篇的分数（绿色 ≥70，黄色 ≥40）。
 
-> 这是**规则筛选**（v1），不消耗 API。下一步会加 AI 打分，只对规则筛出来的内容调用 API，省钱又准。
+### 两级筛选：规则先筛，AI 再判
+
+规则筛选不花钱但只看字面。要更准就加一步 AI：
+
+在「过滤设置」最下面填 **关注方向**（一段话就行）：
+
+> 我关注 AI 大模型进展、创业融资、芯片供应链，不关心消费电子和游戏
+
+然后点「✨ AI 打分」。AI 会给每篇内容打 0-100 分，`精选` 视图自动改用 AI 分（没打过 AI 分的仍用规则分兜底）。
+
+**省钱的关键**：AI 只给**规则分已经过线**的内容打分。1000 条的资讯日，可能只有 30 条进 AI，API 成本几乎可忽略。
+
+需要先在 DSH 插件设置里填 `deepseekApiKey`。
+
+## 让它自己每天跑
+
+装好插件后，跑一次这个脚本就不用再手动点了：
+
+```bash
+# 在插件目录里执行
+./install-schedule.sh                  # 每天 07:00 自动抓取
+./install-schedule.sh --time 06:30     # 自定义时间
+./install-schedule.sh --ai             # 抓完顺便 AI 打分
+./install-schedule.sh --status         # 看装没装、最近日志
+./install-schedule.sh --uninstall      # 卸载
+./install-schedule.sh --run-now        # 立刻跑一次（测试）
+```
+
+macOS 用 launchd，Linux 用 cron，脚本自动判断。日志在 `~/Library/Logs/liuer-intel-station.log`。
+
+> 用 `--ai` 的话，需要把 key 单独放一份给定时任务用：
+> ```bash
+> echo 'sk-xxxx' > ~/.liuer-intel-station/.deepseek_key
+> chmod 600 ~/.liuer-intel-station/.deepseek_key
+> ```
 
 ## 快速开始
 
@@ -177,6 +212,7 @@ DSH 插件（Host 半边）
 | `include` | `[]` | 包含关键词（数组） |
 | `exclude` | `[]` | 排除关键词（数组） |
 | `minScore` | `50` | 精选视图的分数阈值 |
+| `interests` | 空 | 关注方向（AI 打分用，一段话） |
 | `deepseekApiKey` | 空 | DeepSeek API key（用于 AI 总结） |
 
 前 3 项在界面「过滤设置」里改；`deepseekApiKey` 在 DSH 插件设置里填。
@@ -185,7 +221,7 @@ DSH 插件（Host 半边）
 
 | 限制 | 说明 | 计划 |
 |---|---|---|
-| **AI 摘要需配置 API key** | 需在 DSH 插件设置里填 DeepSeek API key | — |
+| **AI 功能需配置 API key** | AI 摘要和 AI 打分都要 DeepSeek API key | — |
 | **更新需重启 DSH** | 修改代码后热重载会报 `duplicate route`，必须重启 | DSH 限制，暂无解 |
 | **数据目录固定** | 默认 `~/.liuer-intel-station`，无法在 GUI 改 | 后续加 Config schema |
 | **Windows 未测试** | 只在 macOS 验证过 | 需要社区反馈 |

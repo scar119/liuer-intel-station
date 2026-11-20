@@ -38,7 +38,7 @@ def build_query(view: str, feed: str, q: str, limit: int, offset: int, min_score
         params.append(cutoff)
     elif view == "filtered":
         # 按分数筛选
-        conditions.append("e.ai_score >= ?")
+        conditions.append("COALESCE(e.llm_score, e.ai_score, 0) >= ?")
         params.append(min_score)
     # "all" → no extra condition (1=1 implicit)
 
@@ -65,13 +65,13 @@ def build_query(view: str, feed: str, q: str, limit: int, offset: int, min_score
         # FTS5 query: join entry_fts with entries, order by bm25
         sql = (
             "SELECT e.id, e.title, e.source, e.published_ts, e.published_at, "
-            "e.summary, e.read, e.starred, e.link, e.ai_score "
+            "e.summary, e.read, e.starred, e.link, e.ai_score, e.llm_score "
             "FROM entries e "
             "JOIN entry_fts f ON e.rowid = f.rowid "
             f"{where_clause} AND f.entry_fts MATCH ? "
             if conditions
             else "SELECT e.id, e.title, e.source, e.published_ts, e.published_at, "
-            "e.summary, e.read, e.starred, e.link, e.ai_score "
+            "e.summary, e.read, e.starred, e.link, e.ai_score, e.llm_score "
             "FROM entries e "
             "JOIN entry_fts f ON e.rowid = f.rowid "
             "WHERE f.entry_fts MATCH ? "
@@ -95,7 +95,7 @@ def build_query(view: str, feed: str, q: str, limit: int, offset: int, min_score
             fts_conditions.append("e.published_ts >= ?")
             fts_params.append(cutoff)
         elif view == "filtered":
-            fts_conditions.append("e.ai_score >= ?")
+            fts_conditions.append("COALESCE(e.llm_score, e.ai_score, 0) >= ?")
             fts_params.append(min_score)
 
         if feed:
@@ -110,7 +110,7 @@ def build_query(view: str, feed: str, q: str, limit: int, offset: int, min_score
 
         sql = (
             "SELECT e.id, e.title, e.source, e.published_ts, e.published_at, "
-            "e.summary, e.read, e.starred, e.link, e.ai_score "
+            "e.summary, e.read, e.starred, e.link, e.ai_score, e.llm_score "
             "FROM entries e "
             "JOIN entry_fts f ON e.rowid = f.rowid "
             f"{fts_where}f.entry_fts MATCH ? "
@@ -126,7 +126,7 @@ def build_query(view: str, feed: str, q: str, limit: int, offset: int, min_score
     order = "ORDER BY e.published_ts DESC"
     sql = (
         "SELECT e.id, e.title, e.source, e.published_ts, e.published_at, "
-        "e.summary, e.read, e.starred, e.link, e.ai_score "
+        "e.summary, e.read, e.starred, e.link, e.ai_score, e.llm_score "
         f"FROM entries e {where_clause} "
         f"{order} LIMIT ? OFFSET ?"
     )
@@ -188,7 +188,7 @@ def main():
             summary_text = truncate(row["summary"], 220)
             # ai_score 列可能不存在（旧库），容错取值
             try:
-                score = row["ai_score"]
+                score = row["llm_score"] if row["llm_score"] is not None else row["ai_score"]
             except (IndexError, KeyError):
                 score = None
             items.append({

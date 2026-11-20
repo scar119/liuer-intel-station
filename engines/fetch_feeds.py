@@ -151,7 +151,9 @@ def parse_items(xml_bytes: bytes):
         try:
             if is_atom:
                 title = get_text(item, f"{{{ATOM_NS}}}title", "title")
-                link_el = item.find(f"{{{ATOM_NS}}}link") or item.find("link")
+                link_el = item.find(f"{{{ATOM_NS}}}link")
+                if link_el is None:
+                    link_el = item.find("link")
                 link = link_el.get("href", "") if link_el is not None else ""
                 updated = get_text(item, f"{{{ATOM_NS}}}updated", "published", "updated")
                 summary = get_text(item, f"{{{ATOM_NS}}}summary", "summary")
